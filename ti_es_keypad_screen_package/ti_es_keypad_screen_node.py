@@ -3,7 +3,7 @@ from rclpy.node import Node
 import serial
 from std_msgs.msg import String
 
-SERIAL_PORT = '/dev/serial0'  # Pi UART (GPIO14/15)
+SERIAL_PORT = '/dev/ttyAMA0'  # Pi UART (GPIO14/15)
 BAUD_RATE = 9600
 
 class SerialPublisher(Node):
