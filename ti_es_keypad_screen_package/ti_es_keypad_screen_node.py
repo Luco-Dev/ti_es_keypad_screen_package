@@ -63,7 +63,7 @@ class SerialPublisher(Node):
 
     def send_serial_message(self, message):
         try:
-            self.serial_conn.write((message + '\n').encode('utf-8'))
+            self.serial_conn.write((message + '|').encode('utf-8'))
             self.get_logger().info(f'Sent to Arduino: {message.strip()}')
         except Exception as e:
             self.get_logger().error(f'Serial Send Error: {e}')
