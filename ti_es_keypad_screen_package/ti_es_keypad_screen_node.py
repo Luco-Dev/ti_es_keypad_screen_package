@@ -21,6 +21,18 @@ class SerialPublisher(Node):
 
         self.timer = self.create_timer(0.1, self.read_from_serial)  # Poll every 100ms
 
+        # Menu state setup
+        self.menu_options = ['Current Location (GPS)', 'Moon', 'Polestar']
+        self.menu_index = 0
+        self.menu_active = True  # True while user is selecting
+        self.selection_confirmed = False
+        self.display_current_menu()
+
+    def display_current_menu(self):
+        current = self.menu_options[self.menu_index]
+        message = f"oled: Select Target:\n> {current}\n#=Next *=Start"
+        self.send_serial_message(message + '#')
+
     def send_to_arduino(self, msg):
         text = msg.data
         try:
@@ -29,7 +41,6 @@ class SerialPublisher(Node):
 
             elif text.startswith("both: "):
                 display_text = text[6:] + '#'
-                #print(len(display_text))
                 if len(display_text) > 33:
                     self.send_serial_message("lcd: Message Could not fit lcd screen#")
                     self.send_serial_message("oled: " + display_text)
@@ -38,7 +49,6 @@ class SerialPublisher(Node):
 
             elif text.startswith("lcd: "):
                 display_text = text[6:] + '#'
-                #print(len(display_text))
                 if len(display_text) > 33:
                     self.send_serial_message("lcd: Message Could not fit screen#")
                 else:
@@ -61,6 +71,27 @@ class SerialPublisher(Node):
             if self.serial_conn.in_waiting > 0:
                 data = self.serial_conn.readline().decode('utf-8').strip()
                 if data:
+                    # Menu navigation logic
+                    if self.menu_active:
+                        if data == '#':  # Next option
+                            self.menu_index = (self.menu_index + 1) % len(self.menu_options)
+                            self.display_current_menu()
+                            return
+                        elif data == '*':  # Confirm selection
+                            self.menu_active = False
+                            selected = self.menu_options[self.menu_index]
+                            confirm_msg = f"oled: Selected: {selected}\nPress * to Start"
+                            self.send_serial_message(confirm_msg + '#')
+                            self.selection_confirmed = True
+                            return
+                    elif self.selection_confirmed and data == '*':
+                        start_msg = f"oled: Starting with: {self.menu_options[self.menu_index]}"
+                        self.send_serial_message(start_msg + '#')
+                        self.selection_confirmed = False  # Reset if needed
+                        # Here you could publish a topic or trigger an action
+                        return
+
+                    # Normal data publishing
                     msg = String()
                     msg.data = data
                     self.publisher_.publish(msg)
