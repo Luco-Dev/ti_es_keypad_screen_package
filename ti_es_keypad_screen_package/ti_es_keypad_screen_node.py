@@ -14,7 +14,7 @@ class SerialPublisher(Node):
         
         try:
             self.serial_conn = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
-            self.get_logger().info(f'Connected to Arduino on {SERIAL_PORT}')
+            self.get_logger().info(f'Connected to ESP on {SERIAL_PORT}')
         except serial.SerialException as e:
             self.get_logger().error(f'Failed to connect to serial port: {e}')
             raise
@@ -29,7 +29,7 @@ class SerialPublisher(Node):
 
             elif text.startswith("both: "):
                 display_text = text[6:] + '#'
-                if len(display_text) >= 31:
+                if len(display_text) >= 33:
                     self.send_serial_message("lcd: Message Could not fit lcd screen#")
                     self.send_serial_message("oled: " + display_text)
                 else:
@@ -37,7 +37,7 @@ class SerialPublisher(Node):
 
             elif text.startswith("lcd: "):
                 display_text = text[6:] + '#'
-                if len(display_text) >= 31:
+                if len(display_text) >= 33:
                     self.send_serial_message("lcd: Message Could not fit screen#")
                 else:
                     self.send_serial_message(text + '#')
