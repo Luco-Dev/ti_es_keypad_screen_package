@@ -30,8 +30,10 @@ class SerialPublisher(Node):
 
     def display_current_menu(self):
         current = self.menu_options[self.menu_index]
-        message = f"oled: Select Target:\n> {current}\n#=Next *=Start"
-        self.send_serial_message(message + '#')
+        oled_msg = f"oled: Select Target:\n> {current}\n#=Next *=Start"
+        lcd_msg = f"lcd: Target: {current}"
+        self.send_serial_message(oled_msg + '#')
+        self.send_serial_message(lcd_msg + '#')
 
     def send_to_arduino(self, msg):
         text = msg.data
@@ -80,15 +82,20 @@ class SerialPublisher(Node):
                         elif data == '*':  # Confirm selection
                             self.menu_active = False
                             selected = self.menu_options[self.menu_index]
-                            confirm_msg = f"oled: Selected: {selected}\nPress * to Start"
-                            self.send_serial_message(confirm_msg + '#')
+                            oled_msg = f"oled: Selected: {selected}\nPress * to Start"
+                            lcd_msg = f"lcd: Selected: {selected}"
+                            self.send_serial_message(oled_msg + '#')
+                            self.send_serial_message(lcd_msg + '#')
                             self.selection_confirmed = True
                             return
                     elif self.selection_confirmed and data == '*':
-                        start_msg = f"oled: Starting with: {self.menu_options[self.menu_index]}"
-                        self.send_serial_message(start_msg + '#')
+                        selected = self.menu_options[self.menu_index]
+                        oled_msg = f"oled: Starting with: {selected}"
+                        lcd_msg = f"lcd: Starting: {selected}"
+                        self.send_serial_message(oled_msg + '#')
+                        self.send_serial_message(lcd_msg + '#')
                         self.selection_confirmed = False  # Reset if needed
-                        # Here you could publish a topic or trigger an action
+                        # Optional: publish to other nodes or perform action here
                         return
 
                     # Normal data publishing
