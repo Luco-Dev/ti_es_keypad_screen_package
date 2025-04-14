@@ -10,7 +10,7 @@ class I2CPublisher(Node):
     def __init__(self):
         super().__init__('i2c_publisher')
         self.publisher_ = self.create_publisher(String, '/ti/es/keypad_data', 10)
-        self.subscription = self.create_subscription(String, 'ti/es/display_data', self.send_to_arduino, 10)
+        self.subscription = self.create_subscription(String, '/ti/es/display_data', self.send_to_arduino, 10)
         self.i2c_bus = smbus2.SMBus(1)
         self.timer = self.create_timer(0.5, self.read_keypad)  # Read keypad every 0.5 seconds
 
