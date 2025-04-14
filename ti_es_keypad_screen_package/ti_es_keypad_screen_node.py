@@ -30,7 +30,7 @@ class SerialPublisher(Node):
             elif text.startswith("both: "):
                 display_text = text[6:] + '#'
                 print(len(display_text))
-                if len(display_text) >= 33:
+                if len(display_text) > 33:
                     self.send_serial_message("lcd: Message Could not fit lcd screen#")
                     self.send_serial_message("oled: " + display_text)
                 else:
@@ -39,7 +39,7 @@ class SerialPublisher(Node):
             elif text.startswith("lcd: "):
                 display_text = text[6:] + '#'
                 print(len(display_text))
-                if len(display_text) >= 33:
+                if len(display_text) > 33:
                     self.send_serial_message("lcd: Message Could not fit screen#")
                 else:
                     self.send_serial_message(text + '#')
