@@ -1,90 +1,75 @@
 import rclpy
 from rclpy.node import Node
-import smbus2
-import time
+import serial
 from std_msgs.msg import String
 
-I2C_ADDR = 0x08  # Arduino I2C address
+SERIAL_PORT = '/dev/serial0'  # Pi UART (GPIO14/15)
+BAUD_RATE = 9600
 
-class I2CPublisher(Node):
+class SerialPublisher(Node):
     def __init__(self):
-        super().__init__('i2c_publisher')
+        super().__init__('serial_publisher')
         self.publisher_ = self.create_publisher(String, '/ti/es/keypad_data', 10)
         self.subscription = self.create_subscription(String, '/ti/es/display_data', self.send_to_arduino, 10)
-        self.i2c_bus = smbus2.SMBus(1)
-        self.timer = self.create_timer(0.5, self.read_keypad)  # Read keypad every 0.5 seconds
+        
+        try:
+            self.serial_conn = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
+            self.get_logger().info(f'Connected to Arduino on {SERIAL_PORT}')
+        except serial.SerialException as e:
+            self.get_logger().error(f'Failed to connect to serial port: {e}')
+            raise
+
+        self.timer = self.create_timer(0.1, self.read_from_serial)  # Poll every 100ms
 
     def send_to_arduino(self, msg):
         text = msg.data
         try:
-            # Check for the specific prefix
             if text.startswith("oled: "):
-                # Remove "oled: " and send the remaining text to Arduino
-                message_to_send = text+'#'                # Send in batches if the message exceeds 32 bytes
-                self.send_in_batches(I2C_ADDR, 0, message_to_send)
+                self.send_serial_message(text + '#')
 
             elif text.startswith("both: "):
-                # Remove "both: " and send the message to both OLED and LCD
-                message_to_send = text+'#'
-                message_to_check = text[6:] + '#'
-                if len(message_to_check) >= 31:
-                    self.send_in_batches(I2C_ADDR, 0, "lcd: Message Could not fit lcd screen#")
-                    self.send_in_batches(I2C_ADDR, 0, "oled: "+ text[6:] + '#')
+                display_text = text[6:] + '#'
+                if len(display_text) >= 31:
+                    self.send_serial_message("lcd: Message Could not fit lcd screen#")
+                    self.send_serial_message("oled: " + display_text)
                 else:
-                    # For OLED (no limit on length), send in batches if needed
-                    self.send_in_batches(I2C_ADDR, 0, message_to_send)
+                    self.send_serial_message(text + '#')
 
             elif text.startswith("lcd: "):
-                # Remove "lcd: " and limit the text to 32 characters for LCD
-                message_to_send = text+'#'
-                message_to_check = text[6:] + '#'
-
-                if len(message_to_check) >= 31:
-                    message_to_send = "lcd: Message Could not fit screen#"
-                # For OLED (no limit on length), send in batches if needed
-                self.send_in_batches(I2C_ADDR, 0, message_to_send)
+                display_text = text[6:] + '#'
+                if len(display_text) >= 31:
+                    self.send_serial_message("lcd: Message Could not fit screen#")
+                else:
+                    self.send_serial_message(text + '#')
 
             else:
-                # If no recognized prefix, log an error or handle as needed
                 self.get_logger().warning(f'Unrecognized message format: {text}')
-        
         except Exception as e:
-            self.get_logger().error(f'I2C Write Error: {e}')
+            self.get_logger().error(f'Serial Write Error: {e}')
 
-
-    def send_in_batches(self, i2c_addr, register, message):
-        """
-        Send the message in batches of 32 bytes over I2C to the specified register.
-        """
-        # Split message into chunks of 32 bytes
-        chunk_size = 31
-        for i in range(0, len(message), chunk_size):
-            chunk = message[i:i + chunk_size]
-            try:
-                # Write the chunk to the I2C bus
-                self.i2c_bus.write_i2c_block_data(i2c_addr, register, chunk.encode('utf-8'))
-                self.get_logger().info(f'Sent to Arduino (I2C Addr: {i2c_addr}, Register: {register}): {chunk}')
-            except Exception as e:
-                self.get_logger().error(f'I2C Write Error while sending chunk: {e}')
-
-        
-        
-
-    def read_keypad(self):
+    def send_serial_message(self, message):
         try:
-            key = self.i2c_bus.read_byte(I2C_ADDR)
-            if key != 0:
-                msg = String()
-                msg.data = chr(key)
-                self.publisher_.publish(msg)
-                self.get_logger().info(f'Received Key: {msg.data}')
+            self.serial_conn.write(message.encode('utf-8'))
+            self.get_logger().info(f'Sent to Arduino: {message.strip()}')
         except Exception as e:
-            self.get_logger().error(f'I2C Read Error: {e}')
+            self.get_logger().error(f'Serial Send Error: {e}')
+
+    def read_from_serial(self):
+        try:
+            if self.serial_conn.in_waiting > 0:
+                data = self.serial_conn.readline().decode('utf-8').strip()
+                if data:
+                    msg = String()
+                    msg.data = data
+                    self.publisher_.publish(msg)
+                    self.get_logger().info(f'Received from Arduino: {msg.data}')
+        except Exception as e:
+            self.get_logger().error(f'Serial Read Error: {e}')
 
 def main(args=None):
-    print("Keypad - Screen - Communication is live...")
+    print("Serial UART (GPIO14/15) communication is live...")
     rclpy.init(args=args)
-    node = I2CPublisher()
+    node = SerialPublisher()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
