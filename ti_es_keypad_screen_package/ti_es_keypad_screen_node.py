@@ -22,16 +22,21 @@ class SerialPublisher(Node):
         self.timer = self.create_timer(0.1, self.read_from_serial)  # Poll every 100ms
 
         # Menu state setup
-        self.menu_options = ['Current Location (GPS)', 'Moon', 'Polestar']
+        self.menu_options = ['Moon', 'Polestar']
+        self.menu_start_options = ['GPS', 'WIJNHAVEN', "CUSTOM"]
         self.menu_index = 0
+        self.menu_start_index = 0
         self.menu_active = True  # True while user is selecting
+        self.menu_start_active = True
         self.selection_confirmed = False
+        self.selection_start_confirmed = False
         self.display_current_menu()
 
     def display_current_menu(self):
         current = self.menu_options[self.menu_index]
-        oled_msg = f"oled: Select Target:\n> {current}\n#=Next *=Start"
-        lcd_msg = f"lcd: Target: {current}"
+        current_start = self.menu_start_options[self.menu_start_index]
+        oled_msg = f"oled: Select Target:\n> {current}\n#=Next *=Start\n Select start:\n> {current_start}\nA=Next C=Start "
+        lcd_msg = f"lcd: Target: {current} start: {current_start}"
         self.send_serial_message(oled_msg)
         self.send_serial_message(lcd_msg)
 
@@ -97,12 +102,28 @@ class SerialPublisher(Node):
                         self.selection_confirmed = False  # Reset if needed
                         # Optional: publish to other nodes or perform action here
                         return
+                    
+
+                    if self.menu_start_active:
+                        if data == 'A':  # Next start option
+                            self.menu_start_index = (self.menu_start_index + 1) % len(self.menu_start_options)
+                            self.display_current_menu()
+                            return
+                        elif data == 'C':  # Confirm start selection
+                            selected_target = self.menu_options[self.menu_index]
+                            selected_start = self.menu_start_options[self.menu_start_index]
+                            oled_msg = f"oled: Starting {selected_target} with {selected_start}"
+                            lcd_msg = f"lcd: Starting {selected_target} with {selected_start}"
+                            self.send_serial_message(oled_msg)
+                            self.send_serial_message(lcd_msg)
+                            self.selection_start_confirmed = True
+                            return
 
                     # Normal data publishing
                     msg = String()
                     msg.data = data
                     self.publisher_.publish(msg)
-                    self.get_logger().info(f'Received from Arduino: {msg.data}')
+                    self.get_logger().info(f'Received from ESP: {msg.data}')
         except Exception as e:
             self.get_logger().error(f'Serial Read Error: {e}')
 
