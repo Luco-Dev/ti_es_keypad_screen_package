@@ -32,29 +32,29 @@ class SerialPublisher(Node):
         current = self.menu_options[self.menu_index]
         oled_msg = f"oled: Select Target:\n> {current}\n#=Next *=Start"
         lcd_msg = f"lcd: Target: {current}"
-        self.send_serial_message(oled_msg + '#')
-        self.send_serial_message(lcd_msg + '#')
+        self.send_serial_message(oled_msg)
+        self.send_serial_message(lcd_msg)
 
     def send_to_arduino(self, msg):
         text = msg.data
         try:
             if text.startswith("oled: "):
-                self.send_serial_message(text + '#')
+                self.send_serial_message(text)
 
             elif text.startswith("both: "):
-                display_text = text[6:] + '#'
+                display_text = text[6:]
                 if len(display_text) > 33:
-                    self.send_serial_message("lcd: Message Could not fit lcd screen#")
+                    self.send_serial_message("lcd: Message Could not fit lcd screen")
                     self.send_serial_message("oled: " + display_text)
                 else:
-                    self.send_serial_message(text + '#')
+                    self.send_serial_message(text)
 
             elif text.startswith("lcd: "):
-                display_text = text[6:] + '#'
+                display_text = text[6:]
                 if len(display_text) > 33:
-                    self.send_serial_message("lcd: Message Could not fit screen#")
+                    self.send_serial_message("lcd: Message Could not fit screen")
                 else:
-                    self.send_serial_message(text + '#')
+                    self.send_serial_message(text)
 
             else:
                 self.get_logger().warning(f'Unrecognized message format: {text}')
@@ -84,16 +84,16 @@ class SerialPublisher(Node):
                             selected = self.menu_options[self.menu_index]
                             oled_msg = f"oled: Selected: {selected}\nPress * to Start"
                             lcd_msg = f"lcd: Selected: {selected}"
-                            self.send_serial_message(oled_msg + '#')
-                            self.send_serial_message(lcd_msg + '#')
+                            self.send_serial_message(oled_msg)
+                            self.send_serial_message(lcd_msg)
                             self.selection_confirmed = True
                             return
                     elif self.selection_confirmed and data == '*':
                         selected = self.menu_options[self.menu_index]
                         oled_msg = f"oled: Starting with: {selected}"
                         lcd_msg = f"lcd: Starting: {selected}"
-                        self.send_serial_message(oled_msg + '#')
-                        self.send_serial_message(lcd_msg + '#')
+                        self.send_serial_message(oled_msg)
+                        self.send_serial_message(lcd_msg)
                         self.selection_confirmed = False  # Reset if needed
                         # Optional: publish to other nodes or perform action here
                         return
