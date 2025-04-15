@@ -77,6 +77,12 @@ class SerialPublisher(Node):
         except Exception as e:
             self.get_logger().error(f'Serial Send Error: {e}')
 
+    def send_ROS_message(self, message):
+        try:
+            self.publisher_.publish(message)
+        except Exception as e:
+            self.get_logger().error(f'ROS Send Error: {e}')
+
     def read_from_serial(self):
         try:
             if self.serial_conn.in_waiting > 0:
@@ -96,7 +102,7 @@ class SerialPublisher(Node):
                             self.send_serial_message(oled_msg)
                             self.send_serial_message(lcd_msg)
                             self.selection_confirmed = True
-                            self.publisher_.publish(self.menu_target_coordinates[self.menu_index])
+                            self.send_ROS_message(self.menu_target_coordinates[self.menu_index])
                             return
                     elif self.selection_confirmed and data == '*':
                         selected = self.menu_options[self.menu_index]
