@@ -79,6 +79,7 @@ class SerialPublisher(Node):
 
     def send_ROS_message(self, message):
         try:
+            self.get_logger().info(f'sending info to ROS')
             self.publisher_.publish(message)
         except Exception as e:
             self.get_logger().error(f'ROS Send Error: {e}')
@@ -102,8 +103,8 @@ class SerialPublisher(Node):
                             self.send_serial_message(oled_msg)
                             self.send_serial_message(lcd_msg)
                             self.selection_confirmed = True
-                            self.send_ROS_message(self.menu_target_coordinates[self.menu_index])
                             return
+                    
                     elif self.selection_confirmed and data == '*':
                         selected = self.menu_options[self.menu_index]
                         oled_msg = f"oled: Starting with: {selected}"
@@ -133,7 +134,8 @@ class SerialPublisher(Node):
                     # Normal data publishing
                     msg = String()
                     msg.data = data
-                    
+                    if data == '*':
+                        self.send_ROS_message(self.menu_target_coordinates[self.menu_index])
                     self.get_logger().info(f'Received from ESP: {msg.data}')
         except Exception as e:
             self.get_logger().error(f'Serial Read Error: {e}')
