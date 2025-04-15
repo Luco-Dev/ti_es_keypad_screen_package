@@ -24,6 +24,10 @@ class SerialPublisher(Node):
         # Menu state setup
         self.menu_options = ['Moon', 'Polestar']
         self.menu_start_options = ['GPS', 'WIJNHAVEN', "CUSTOM"]
+        self.menu_target_coordinates = [
+    {"type": "coords", "ra": "12h30m00s", "dec": "-01d00m00s"},  # Moon (example)
+    {"type": "coords", "ra": "02h31m49s", "dec": "+89d15m51s"},  # Polestar
+]
         self.menu_index = 0
         self.menu_start_index = 0
         self.menu_active = True  # True while user is selecting
@@ -92,6 +96,7 @@ class SerialPublisher(Node):
                             self.send_serial_message(oled_msg)
                             self.send_serial_message(lcd_msg)
                             self.selection_confirmed = True
+                            self.publisher_.publish(self.menu_target_coordinates[self.menu_index])
                             return
                     elif self.selection_confirmed and data == '*':
                         selected = self.menu_options[self.menu_index]
@@ -122,7 +127,7 @@ class SerialPublisher(Node):
                     # Normal data publishing
                     msg = String()
                     msg.data = data
-                    self.publisher_.publish(msg)
+                    
                     self.get_logger().info(f'Received from ESP: {msg.data}')
         except Exception as e:
             self.get_logger().error(f'Serial Read Error: {e}')
