@@ -25,8 +25,8 @@ class SerialPublisher(Node):
         self.menu_options = ['Moon', 'Polestar']
         self.menu_start_options = ['GPS', 'WIJNHAVEN', "CUSTOM"]
         self.menu_target_coordinates = [
-    {"type": "coords", "ra": "12h30m00s", "dec": "-01d00m00s"},  # Moon (example)
-    {"type": "coords", "ra": "02h31m49s", "dec": "+89d15m51s"},  # Polestar
+    {"type": "coords", "ra": "12;30;00", "dec": "-01;00;00"},  # Moon (example)
+    {"type": "coords", "ra": "02;31;49", "dec": "+89;15;51"},  # Polestar
 ]
         self.menu_index = 0
         self.menu_start_index = 0
@@ -135,7 +135,9 @@ class SerialPublisher(Node):
                     msg = String()
                     msg.data = data
                     if data == '*':
-                        self.send_ROS_message(self.menu_target_coordinates[self.menu_index])
+                        m = String()
+                        m.data = f"{self.menu_target_coordinates[self.menu_index]}"
+                        self.send_ROS_message(m)
                     self.get_logger().info(f'Received from ESP: {msg.data}')
         except Exception as e:
             self.get_logger().error(f'Serial Read Error: {e}')
