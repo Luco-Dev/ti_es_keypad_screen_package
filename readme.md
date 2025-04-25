@@ -1,74 +1,69 @@
-# I2C ROS Node for DFRobot FireBeetle 2 ESP32-E
+# UART ROS Node for DFRobot FireBeetle 2 ESP32-E
 
-## Overview
+## Introduction
 
-This ROS 2 node facilitates communication between a ROS-based system and an **ESP32 (DFRobot FireBeetle 2 ESP32-E)** over I2C. It sends display commands and retrieves keypad inputs from the ESP, which interfaces with both an OLED and an LCD.
+This ROS 2 node provides UART communication between a ROS-based system (e.g. Raspberry Pi) and the DFRobot FireBeetle 2 ESP32-E. It allows the ESP32 to send keypad input to ROS and receive display commands (for both an OLED and 16x2 LCD) from ROS.
 
-## Setup
+**Note:** The ESP32 handles I2C communication internally with the displays and keypad. This ROS node only communicates via UART.
 
-### Dependencies
+## Packages
 
-- **ROS 2** (e.g., Foxy, Humble)
+- **ROS 2**: Compatible with Foxy, Humble, and other ROS 2 distributions.
 - **Python Libraries**:
-  - `rclpy`
-  - `smbus2`  
-    > On Ubuntu, install via:  
-    ```
-    sudo apt install python3-smbus2
-    ```
+  - ```rclpy```
+  - ```pyserial```
+  - ```skyfield``` (for astronomy-based coordinate generation)
 
-### Installation
+Install the required Python packages:
 
-1. Clone the package into your ROS workspace:
-   ```
-   cd ~/your_ros_workspace/src
-   git clone <repository-url>
-   ```
-2. Install required Python libraries (if needed):
-   ```
-   pip install smbus2
-   ```
-3. Build the workspace:
-   ```
-   cd ~/your_ros_workspace
-   colcon build
-   ```
+```
+pip install pyserial skyfield
+```
 
-## Node Details
+## Hardware that interacts with it
 
-- **Node Name**: `i2c_publisher`
-- **Publisher**: `/ti/es/keypad_data` (`std_msgs/String`)  
-  Publishes keypresses from the ESP keypad.
-- **Subscriber**: `/ti/es/display_data` (`std_msgs/String`)  
-  Subscribes to messages that will be sent to the ESP for display.
+- **ESP32 (DFRobot FireBeetle 2)**
+- **OLED Display (I2C)**
+- **16x2 LCD Display (I2C)**
+- **Keypad Matrix**
+- **Serial UART (GPIO14/15)** to communicate with Raspberry Pi
+- ESP32 uses I2C for internal peripheral control (not ROS-visible)
 
-## Communication
+## Installation guide
 
-- **I2C Address**: Defaults to `0x08`
-- **Sending**: Messages are prefixed with:
-  - `oled:`, `lcd:`, or `both:` to control which display the message appears on.
-- **Batching**: Long messages are automatically split into 32-byte chunks before being sent.
-- **Receiving**: Reads single-character keypad inputs from the ESP and republishes them to the ROS topic.
+1. Clone this package into your ROS 2 workspace:
 
-## Functions
+```
+cd ~/your_ros_workspace/src
+git clone <repository-url>
+```
 
-- `send_to_arduino(msg)`: Formats and sends display messages to the ESP.
-- `send_in_batches(i2c_addr, register, message)`: Splits long messages into I2C-friendly chunks (≤32 bytes).
-- `read_keypad()`: Reads and publishes a single key press.
+2. Install Python dependencies:
 
-## Logic Handling
+```
+pip install pyserial skyfield
+```
 
-- Prefixes like `"oled:"`, `"lcd:"`, and `"both:"` help the ESP decide which display(s) to use.
-- The ESP truncates text beyond display limits to avoid overflow (especially for the 16x2 LCD).
-- ROS handles display logic to minimize memory usage on the microcontroller.
+3. Build your workspace:
 
-## Usage
+```
+cd ~/your_ros_workspace
+colcon build
+```
 
-1. Ensure the ESP32 is flashed with the Arduino sketch and powered on.
-2. Run the ROS node:
-   ```
-   ros2 run <package_name> i2cpublisher
-   ```
-3. Use ROS topics to send and receive data:
-   - Publish messages to `/ti/es/display_data` to display on the ESP.
-   - Subscribe to `/ti/es/keypad_data` to receive keypad input from the ESP.
+## Configuration options
+
+- **Serial Port**: Defaults to ```/dev/ttyAMA0``` (Raspberry Pi UART). Edit in the code if needed.
+- **Baud Rate**: ```115200```
+- **Display Prefixes**: Use ```oled:``` or ```lcd:``` or ```both:``` in message strings to target specific displays.
+- **Menu Logic**: Built-in menu system for selecting targets and start coordinates via keypad.
+
+## Author
+
+Created by **Luco Berkouwer**.  
+Fork this repository to adapt it for your own robotics setup. Contributions are welcome via pull requests!
+
+### Related ESP Code
+
+The Arduino PlatformIO firmware that this node communicates with (handling I2C displays and keypad) is available here:  
+[ti_es_keypad_screen_esp](https://github.com/Luco-Dev/ti_es_keypad_screen_esp/tree/ea5f72bb9a9d6f243bc620badf1091c040fc443f)
